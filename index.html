@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ג'נתר - משחק לוח הכפל</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            width: 100%;
+            max-width: 800px;
+            height: 100vh;
+            max-height: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Start Screen */
+        #startScreen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #startScreen h1 {
+            color: white;
+            font-size: 3em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .input-group {
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .input-group label {
+            display: block;
+            color: white;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .input-group input,
+        .input-group select {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            text-align: center;
+            width: 250px;
+        }
+
+        #startButton {
+            margin-top: 30px;
+            padding: 15px 50px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #startButton:hover {
+            transform: scale(1.1);
+        }
+
+        /* Game Screen */
+        #gameScreen {
+            width: 100%;
+            height: 100%;
+            display: none;
+            position: relative;
+        }
+
+        #gameCanvas {
+            width: 100%;
+            height: calc(100% - 60px);
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 100%);
+        }
+
+        #scoreBoard {
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            color: white;
+            font-size: 1.2em;
+            padding: 0 20px;
+        }
+
+        .score-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Math Challenge Modal */
+        #mathChallenge {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        #mathChallenge h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        #mathQuestion {
+            font-size: 2.5em;
+            color: #333;
+            margin: 20px 0;
+        }
+
+        #answerInput {
+            padding: 15px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            font-size: 1.5em;
+            text-align: center;
+            width: 150px;
+        }
+
+        #submitAnswer {
+            margin-top: 20px;
+            padding: 12px 40px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3em;
+            cursor: pointer;
+        }
+
+        #submitAnswer:hover {
+            background: #45a049;
+        }
+
+        .overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
+        /* Win Screen */
+        #winScreen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            text-align: center;
+            z-index: 1000;
+        }
+
+        #winScreen h2 {
+            color: #4CAF50;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+
+        #nextLevelButton {
+            padding: 15px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.3em;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            #startScreen h1 {
+                font-size: 2em;
+            }
+            
+            #mathChallenge {
+                padding: 30px 20px;
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- Start Screen -->
+        <div id="startScreen">
+            <h1>🎮 ג'נתר 🎮</h1>
+            <div class="input-group">
+                <label>מה השם שלך?</label>
+                <input type="text" id="playerName" placeholder="הכנס שם" value="שחקן">
+            </div>
+            <div class="input-group">
+                <label>כמה שחקנים נוספים?</label>
+                <select id="numBots">
+                    <option value="0">ללא</option>
+                    <option value="1">1 שחקן</option>
+                    <option value="2" selected>2 שחקנים</option>
+                    <option value="3">3 שחקנים</option>
+                </select>
+            </div>
+            <button id="startButton">התחל משחק!</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen">
+            <canvas id="gameCanvas"></canvas>
+            <div id="scoreBoard">
+                <div class="score-item">
+                    ⭐ כוכבים: <span id="stars">0</span>
+                </div>
+                <div class="score-item">
+                    🪙 מטבעות: <span id="coins">0</span>
+                </div>
+                <div class="score-item">
+                    🎯 שלב: <span id="level">1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay -->
+        <div class="overlay" id="overlay"></div>
+
+        <!-- Math Challenge -->
+        <div id="mathChallenge">
+            <h2>תרגיל כפל! 🎲</h2>
+            <div id="mathQuestion">5 × 7 = ?</div>
+            <input type="number" id="answerInput" placeholder="תשובה">
+            <br>
+            <button id="submitAnswer">שלח תשובה</button>
+        </div>
+
+        <!-- Win Screen -->
+        <div id="winScreen">
+            <h2>🎉 כל הכבוד! 🎉</h2>
+            <p id="winMessage">סיימת את השלב!</p>
+            <button id="nextLevelButton">שלב הבא</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Sound system using Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'coin':
+                    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                    
+                case 'star':
+                    oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(1400, audioContext.currentTime + 0.15);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    break;
+                    
+                case 'correct':
+                    // Play happy ascending notes
+                    [600, 800, 1000].forEach((freq, i) => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.2, audioContext.currentTime + i * 0.1);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.1 + 0.2);
+                        osc.start(audioContext.currentTime + i * 0.1);
+                        osc.stop(audioContext.currentTime + i * 0.1 + 0.2);
+                    });
+                    break;
+                    
+                case 'wrong':
+                    // Play sad descending note
+                    oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                    break;
+                    
+                case 'win':
+                    // Play victory fanfare
+                    [523, 659, 784, 1047].forEach((freq, i) => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.2, audioContext.currentTime + i * 0.15);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
+                        osc.start(audioContext.currentTime + i * 0.15);
+                        osc.stop(audioContext.currentTime + i * 0.15 + 0.3);
+                    });
+                    break;
+                    
+                case 'cube':
+                    // Question sound
+                    oscillator.frequency.setValueAtTime(500, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(700, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+            }
+        }
+
+        // Set canvas size
+        function resizeCanvas() {
+            const container = document.getElementById('gameContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight - 60;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        let gameState = {
+            level: 1,
+            stars: 0,
+            coins: 100,
+            players: [],
+            playerName: '',
+            collectibles: [],
+            cubes: [],
+            finishLine: 0,
+            currentChallenge: null,
+            isAnswering: false
+        };
+
+        const PLAYER_COLORS = ['#FF4444', '#4444FF', '#44FF44', '#FFAA00'];
+        const BOT_NAMES = ['רובי', 'מיה', 'דני', 'נועה'];
+
+        // Player class
+        class Player {
+            constructor(name, color, isBot = false) {
+                this.name = name;
+                this.color = color;
+                this.isBot = isBot;
+                this.x = 50;
+                this.y = canvas.height / 2;
+                this.speed = isBot ? 1.5 + Math.random() * 0.5 : 2;
+                this.width = 40;
+                this.height = 50;
+                this.coins = 100;
+                this.stars = 0;
+                this.isPaused = false;
+                this.pauseTimer = 0;
+            }
+
+            draw() {
+                // Draw character exactly like the drawing
+                ctx.fillStyle = this.color;
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                
+                // Head (big rounded oval)
+                ctx.beginPath();
+                ctx.ellipse(this.x + 20, this.y + 15, 16, 13, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Hat (rounded top)
+                ctx.beginPath();
+                ctx.arc(this.x + 20, this.y + 2, 14, Math.PI, 0, true);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Hat brim
+                ctx.fillRect(this.x + 6, this.y, 28, 4);
+                ctx.strokeRect(this.x + 6, this.y, 28, 4);
+                
+                // Eyes (big round dots)
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(this.x + 14, this.y + 13, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.x + 26, this.y + 13, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Smile (curved line)
+                ctx.beginPath();
+                ctx.arc(this.x + 20, this.y + 16, 7, 0.2, Math.PI - 0.2);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Body (rounded rectangle)
+                ctx.fillStyle = this.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(this.x + 8, this.y + 28, 24, 15, 8);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Legs (rounded bottom)
+                ctx.beginPath();
+                ctx.roundRect(this.x + 10, this.y + 40, 8, 12, 4);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.roundRect(this.x + 22, this.y + 40, 8, 12, 4);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Arms (simple rounded)
+                ctx.beginPath();
+                ctx.roundRect(this.x + 2, this.y + 28, 6, 12, 3);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.roundRect(this.x + 32, this.y + 28, 6, 12, 3);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Name above character
+                ctx.fillStyle = '#000';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.name, this.x + 20, this.y - 12);
+            }
+
+            update() {
+                if (this.isPaused) {
+                    this.pauseTimer--;
+                    if (this.pauseTimer <= 0) {
+                        this.isPaused = false;
+                    }
+                    return;
+                }
+
+                // Auto-move forward (for all players)
+                if (!this.isBot) {
+                    this.x += 2; // Player auto-moves forward
+                } else {
+                    this.x += this.speed;
+                }
+                
+                if (this.isBot) {
+                    // Check cube collision for bots
+                    gameState.cubes.forEach(cube => {
+                        if (this.checkCollision(cube) && !cube.triggered) {
+                            cube.triggered = true;
+                            this.handleBotCube();
+                        }
+                    });
+                }
+                
+                // Check collectibles collision
+                gameState.collectibles.forEach((item, index) => {
+                    if (this.checkCollision(item) && !item.collected) {
+                        item.collected = true;
+                        if (item.type === 'star') {
+                            this.stars++;
+                            if (!this.isBot) {
+                                gameState.stars++;
+                                updateScore();
+                                playSound('star');
+                            }
+                        } else if (item.type === 'coin') {
+                            this.coins += 10;
+                            if (!this.isBot) {
+                                gameState.coins += 10;
+                                updateScore();
+                                playSound('coin');
+                            }
+                        }
+                    }
+                });
+
+                // Check finish line
+                if (this.x >= gameState.finishLine && !this.isBot) {
+                    winLevel();
+                }
+            }
+
+            handleBotCube() {
+                this.isPaused = true;
+                this.pauseTimer = 90; // 3 seconds at 30fps
+                
+                // Random outcome
+                const success = Math.random() > 0.3;
+                if (success) {
+                    this.coins += 20;
+                } else {
+                    this.coins -= 15;
+                    this.x -= 100; // Move back
+                }
+            }
+
+            checkCollision(obj) {
+                return this.x < obj.x + obj.width &&
+                       this.x + this.width > obj.x &&
+                       this.y < obj.y + obj.height &&
+                       this.y + this.height > obj.y;
+            }
+        }
+
+        // Initialize level
+        function initLevel() {
+            gameState.collectibles = [];
+            gameState.cubes = [];
+            
+            const trackLength = canvas.width * 3;
+            gameState.finishLine = trackLength - 100;
+            
+            // Create stars
+            for (let i = 0; i < 8 + gameState.level * 2; i++) {
+                gameState.collectibles.push({
+                    type: 'star',
+                    x: 100 + Math.random() * (trackLength - 200),
+                    y: 50 + Math.random() * (canvas.height - 150),
+                    width: 25,
+                    height: 25,
+                    collected: false
+                });
+            }
+            
+            // Create coins
+            for (let i = 0; i < 15 + gameState.level * 3; i++) {
+                gameState.collectibles.push({
+                    type: 'coin',
+                    x: 100 + Math.random() * (trackLength - 200),
+                    y: 50 + Math.random() * (canvas.height - 150),
+                    width: 20,
+                    height: 20,
+                    collected: false
+                });
+            }
+            
+            // Create challenge cubes
+            for (let i = 0; i < 5 + gameState.level; i++) {
+                gameState.cubes.push({
+                    x: 200 + (i * trackLength / (5 + gameState.level)),
+                    y: 100 + Math.random() * (canvas.height - 200),
+                    width: 40,
+                    height: 40,
+                    triggered: false
+                });
+            }
+
+            // Reset players position
+            gameState.players.forEach((player, index) => {
+                player.x = 50;
+                player.y = 100 + index * 70;
+            });
+        }
+
+        // Draw game
+        function drawGame() {
+            // Clear canvas
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, canvas.height - 20, canvas.width, 20);
+            
+            // Calculate camera offset (follow player)
+            const player = gameState.players[0];
+            const cameraX = Math.max(0, Math.min(player.x - canvas.width / 3, gameState.finishLine - canvas.width));
+            
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+            
+            // Draw finish line
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(gameState.finishLine, 0, 20, canvas.height);
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('סיום!', gameState.finishLine + 10, 30);
+            
+            // Draw collectibles
+            gameState.collectibles.forEach(item => {
+                if (!item.collected) {
+                    if (item.type === 'star') {
+                        ctx.fillStyle = '#FFD700';
+                        ctx.font = '25px Arial';
+                        ctx.fillText('⭐', item.x, item.y + 20);
+                    } else {
+                        ctx.fillStyle = '#FFA500';
+                        ctx.font = '20px Arial';
+                        ctx.fillText('🪙', item.x, item.y + 15);
+                    }
+                }
+            });
+            
+            // Draw cubes
+            gameState.cubes.forEach(cube => {
+                if (!cube.triggered) {
+                    ctx.fillStyle = '#8B008B';
+                    ctx.fillRect(cube.x, cube.y, cube.width, cube.height);
+                    ctx.fillStyle = '#FFF';
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('?', cube.x + 20, cube.y + 27);
+                }
+            });
+            
+            // Draw players
+            gameState.players.forEach(player => {
+                player.draw();
+            });
+            
+            ctx.restore();
+        }
+
+        // Update score display
+        function updateScore() {
+            document.getElementById('stars').textContent = gameState.stars;
+            document.getElementById('coins').textContent = gameState.coins;
+            document.getElementById('level').textContent = gameState.level;
+        }
+
+        // Game loop
+        function gameLoop() {
+            if (!gameState.isAnswering) {
+                gameState.players.forEach(player => player.update());
+            }
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Math challenge
+        function showMathChallenge() {
+            gameState.isAnswering = true;
+            playSound('cube');
+            
+            const maxNumber = Math.min(10, 5 + gameState.level);
+            const num1 = Math.floor(Math.random() * maxNumber) + 1;
+            const num2 = Math.floor(Math.random() * maxNumber) + 1;
+            
+            gameState.currentChallenge = {
+                num1,
+                num2,
+                answer: num1 * num2
+            };
+            
+            document.getElementById('mathQuestion').textContent = `${num1} × ${num2} = ?`;
+            document.getElementById('answerInput').value = '';
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('mathChallenge').style.display = 'block';
+            document.getElementById('answerInput').focus();
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('answerInput').value);
+            const player = gameState.players[0];
+            
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('mathChallenge').style.display = 'none';
+            
+            if (userAnswer === gameState.currentChallenge.answer) {
+                // Correct answer
+                playSound('correct');
+                gameState.coins += 30;
+                player.coins += 30;
+                updateScore();
+            } else {
+                // Wrong answer
+                playSound('wrong');
+                gameState.coins -= 20;
+                player.coins -= 20;
+                player.x -= 150; // Move back
+                if (player.x < 50) player.x = 50;
+                updateScore();
+            }
+            
+            gameState.isAnswering = false;
+        }
+
+        // Win level
+        function winLevel() {
+            playSound('win');
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('winScreen').style.display = 'block';
+            document.getElementById('winMessage').textContent = 
+                `סיימת את השלב ${gameState.level}! אספת ${gameState.stars} כוכבים ו-${gameState.coins} מטבעות!`;
+        }
+
+        // Start game
+        document.getElementById('startButton').addEventListener('click', () => {
+            const playerName = document.getElementById('playerName').value || 'שחקן';
+            const numBots = parseInt(document.getElementById('numBots').value);
+            
+            gameState.playerName = playerName;
+            gameState.players = [new Player(playerName, PLAYER_COLORS[0], false)];
+            
+            for (let i = 0; i < numBots; i++) {
+                gameState.players.push(new Player(BOT_NAMES[i], PLAYER_COLORS[i + 1], true));
+            }
+            
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            
+            initLevel();
+            updateScore();
+            gameLoop();
+        });
+
+        // Submit answer
+        document.getElementById('submitAnswer').addEventListener('click', checkAnswer);
+        document.getElementById('answerInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkAnswer();
+        });
+
+        // Next level
+        document.getElementById('nextLevelButton').addEventListener('click', () => {
+            gameState.level++;
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('winScreen').style.display = 'none';
+            initLevel();
+            updateScore();
+        });
+
+        // Player controls
+        let keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Update player position based on keys
+        setInterval(() => {
+            if (!gameState.isAnswering && gameState.players.length > 0) {
+                const player = gameState.players[0];
+                
+                // Arrow keys only control vertical and horizontal fine-tuning
+                // Player auto-moves forward in update()
+                if (keys['ArrowRight'] || keys['d']) player.x += 1;
+                if (keys['ArrowLeft'] || keys['a']) player.x -= 2;
+                if (keys['ArrowUp'] || keys['w']) player.y -= 3;
+                if (keys['ArrowDown'] || keys['s']) player.y += 3;
+                
+                // Keep player in bounds
+                player.x = Math.max(0, Math.min(player.x, gameState.finishLine + 50));
+                player.y = Math.max(0, Math.min(player.y, canvas.height - player.height - 20));
+                
+                // Check cube collision
+                gameState.cubes.forEach(cube => {
+                    if (player.checkCollision(cube) && !cube.triggered) {
+                        cube.triggered = true;
+                        showMathChallenge();
+                    }
+                });
+            }
+        }, 1000 / 30);
+
+        // Touch controls for mobile
+        let touchStartX, touchStartY;
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!gameState.isAnswering && gameState.players.length > 0) {
+                e.preventDefault();
+                const touchX = e.touches[0].clientX;
+                const touchY = e.touches[0].clientY;
+                const deltaX = touchX - touchStartX;
+                const deltaY = touchY - touchStartY;
+                
+                const player = gameState.players[0];
+                player.x += deltaX * 0.5;
+                player.y += deltaY * 0.5;
+                
+                player.x = Math.max(0, Math.min(player.x, gameState.finishLine + 50));
+                player.y = Math.max(0, Math.min(player.y, canvas.height - player.height - 20));
+                
+                touchStartX = touchX;
+                touchStartY = touchY;
+            }
+        });
+    </script>
+</body>
+</html>
